@@ -1,0 +1,38 @@
+DATASET_CONFIG = {
+	'data_path' : "Datasets",
+	'dataset_json': 'saliency/data/dataset.json',
+	'auto_download' : True
+}
+
+IMAGE_EMBEDDING_CONFIG = {
+	'data_path': "Datasets/image_embeddings",
+	'dataset_name': "OSIE",
+	'height': 600,
+	'width': 800,
+	'image_splits': [6, 8],
+	'data_range': 64,
+}
+
+MODEL_CONFIG = {
+	'batch_size': 32,
+	"D": 1120,
+	"img_patch_area": 30000,
+
+	"image_embedding_dimension": 1024,
+	"position_embedding_dimension": 96,
+
+	"t_n_head": 16,
+	"t_n_encoder_layers": 12,
+	"t_n_decoder_layers": 12,
+	"t_dim_feedfordward": 4096,
+	"t_dropout": 0.1,
+	"t_activation": "relu",
+	"t_batch_first": True,
+
+}
+
+TRAIN_CONFIG = {
+	"n_epochs": 100,
+	"lr": 5.0,
+	"loss_weights": [1, 1]
+}
