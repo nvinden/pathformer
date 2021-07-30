@@ -101,3 +101,20 @@ def calculate_loss(predicted, target, model):
     s_mse = spatio_mse(predicted, target, model)
 
     return weights[0] * pt_cse + weights[1] * s_mse
+
+def print_percent_on_correct(result, target):
+    if len(result.shape) == 3:
+        result = result[0]
+    if len(target.shape) == 2:
+        target = target[0]
+
+    avg_correctness = 0
+
+    for res, tgt in zip(result, target):
+        avg_correctness += res[tgt]
+        print(tgt, res[tgt])
+
+    avg_correctness /= target.shape[0]
+
+    print(f"Average Correctness: {avg_correctness}")
+    

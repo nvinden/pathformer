@@ -2,7 +2,7 @@ from saliency import dataset
 from config import *
 from dataset import ImageEmbeddings, create_batches, create_target_sequence
 from model import PathFormer
-from process import calculate_loss
+from process import calculate_loss, print_percent_on_correct
 
 import torch
 import torch.nn as nn
@@ -53,7 +53,7 @@ def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler):
         curr_seq_patch = seq_patch[:, i]
         curr_target = target[:, :, i]
 
-        result = model(curr_seq_patch, curr_seq_patch, img_emb)
+        result = model(curr_seq_patch, img_emb)
 
         loss = calculate_loss(result, curr_target, model)
         loss.backward()
@@ -61,7 +61,9 @@ def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler):
         optim.step()
 
         print(loss)
-        print(result[0, 0])
+        print_percent_on_correct(result, curr_target)
+        
+        
 
 def main():
     # on_self: training encoder and decoder on the same path. Good for first epoch

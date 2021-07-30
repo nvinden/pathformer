@@ -118,7 +118,7 @@ class PathFormer(nn.Module):
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
-    def forward(self, seq_enc, seq_dec, img_patches):
+    def forward(self, seq, img_patches):
         img_patches = torch.from_numpy(img_patches)
         img_patches.requires_grad = False
 
@@ -131,7 +131,7 @@ class PathFormer(nn.Module):
         #       n_patches + 3 (51) = <EMPTY>
 
         #decoder
-        dec_embeddings = self.create_dec_embeddings(seq_dec)
+        dec_embeddings = self.create_dec_embeddings(seq)
 
         enc_embeddings = self.positional_encoding(enc_embeddings)
         dec_embeddings = self.positional_encoding(dec_embeddings)

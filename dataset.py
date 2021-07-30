@@ -117,12 +117,12 @@ def create_batches(ds, batch_size):
     return np.array(batches)
 
 def create_target_sequence(seq, model):
-    out = torch.zeros((seq.shape[0], model.n_patches, seq.shape[1]), dtype=torch.long)
+    out = torch.zeros((seq.shape[0], model.t_seq_length, seq.shape[1]), dtype=torch.long)
     for i, curr in enumerate(seq):
         for j, fix in enumerate(curr):
             fix = torch.ByteTensor(fix)
             out[i, 0:len(fix), j] = torch.ByteTensor(fix)
             out[i, len(fix), j] = model.END
-            out[i, len(fix) + 1:, j] = torch.full([model.n_patches - len(fix) - 1], model.NONE, dtype = torch.long)
+            out[i, len(fix) + 1:, j] = torch.full([model.t_seq_length - len(fix) - 1], model.NONE, dtype = torch.long)
     #create array thing
     return out
