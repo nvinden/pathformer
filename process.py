@@ -41,11 +41,14 @@ def create_distance_dictionary(model, path = None):
 
 
 def spatio_mse(predicted, target, model):
+    pred = torch.clone(predicted)
+    tgt = torch.clone(target)
+
     dist_dict = create_distance_dictionary(model, path = None)
 
     s_mse = 0
 
-    for curr_pred, curr_targ in zip(predicted, target):
+    for curr_pred, curr_targ in zip(pred, tgt):
         for tgt_num, curr_row in zip(curr_targ, curr_pred):
             if tgt_num == model.END:
                 break
@@ -59,7 +62,7 @@ def spatio_mse(predicted, target, model):
             ew_mult = torch_dict * curr_row
             s_mse += ew_mult.sum()
 
-    s_mse /= (target.shape[0] * target.shape[1])
+    s_mse /= (tgt.shape[0] * tgt.shape[1])
 
     return s_mse
 
