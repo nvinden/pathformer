@@ -62,6 +62,7 @@ def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler):
         optim.step()
 
         print(loss)
+        print(result[0, 0])
 
 def main():
     # on_self: training encoder and decoder on the same path. Good for first epoch

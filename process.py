@@ -2,6 +2,7 @@ from config import *
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 import math
 import os
@@ -40,6 +41,7 @@ def create_distance_dictionary(model, path = None):
 
 
 def spatio_mse(predicted, target, model):
+    predicted = F.softmax(predicted, dim = -1)
     predicted = predicted.permute(0, 2, 1)
 
     dist_dict = create_distance_dictionary(model, path = None)
@@ -62,25 +64,25 @@ def spatio_mse(predicted, target, model):
     return s_mse
 
 def point_type_crossentropy_loss(predicted, target, model):
-    cel = nn.NLLLoss()
+    cel = nn.CrossEntropyLoss()
 
     n_out_dims = model.n_tokens - model.n_patches + 1
 
     new_pred = torch.zeros([predicted.shape[0], predicted.shape[1], n_out_dims])
     new_pred[:, :, 1:] = predicted[:, :, -n_out_dims + 1:]
     new_pred[:, :, 0] = 1 - new_pred.sum(axis = 2)
-    new_pred = torch.log(new_pred)
 
     tgt_cpy = torch.clone(target)
-    for i, batch in enumerate(target):
+    for i, batch in enumerate(tgt_cpy):
         for j, point in enumerate(batch):
             if 0 <= point <= model.n_patches - 1:
                 tgt_cpy[i, j] = 0
             else:
                 tgt_cpy[i, j] = point - model.n_patches
 
-    out = cel(predicted, tgt_cpy)
-    out = torch.exp(out)
+    out = 0
+    for pred, tar in zip(new_pred, tgt_cpy):
+        out += cel(pred, tar)
 
     return out
 
@@ -91,8 +93,10 @@ def calculate_loss(predicted, target, model):
 
     weights = TRAIN_CONFIG['loss_weights']
 
-    pt_cse = point_type_crossentropy_loss(predicted, target, model)
+    pt_cse = 0#point_type_crossentropy_loss(predicted, target, model)
 
     s_mse = spatio_mse(predicted, target, model)
+
+    print(pt_cse, s_mse)
 
     return weights[0] * pt_cse + weights[1] * s_mse
