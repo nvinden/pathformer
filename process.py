@@ -41,7 +41,6 @@ def create_distance_dictionary(model, path = None):
 
 
 def spatio_mse(predicted, target, model):
-    predicted = F.softmax(predicted, dim = -1)
     predicted = predicted.permute(0, 2, 1)
 
     dist_dict = create_distance_dictionary(model, path = None)
