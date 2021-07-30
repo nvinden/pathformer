@@ -131,5 +131,6 @@ class PathFormer(nn.Module):
         
         out = self.transformer(enc_embeddings, dec_embeddings, tgt_mask = self.dec_mask)
         out = self.output_linear(out)
+        out = F.softmax(out, dim = -1)
 
         return out
