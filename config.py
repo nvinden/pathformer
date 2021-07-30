@@ -21,13 +21,14 @@ MODEL_CONFIG = {
 	"image_embedding_dimension": 1024,
 	"position_embedding_dimension": 96,
 
+	"t_seq_length": 25,
 	"t_n_head": 16,
 	"t_n_encoder_layers": 12,
 	"t_n_decoder_layers": 12,
 	"t_dim_feedfordward": 4096,
 	"t_dropout": 0.1,
 	"t_activation": "relu",
-	"t_batch_first": True,
+	"t_batch_first": True
 
 }
 

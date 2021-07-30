@@ -47,6 +47,7 @@ class PathFormer(nn.Module):
         assert self.image_embedding_dimension + self.position_embedding_dimension == self.D
         #transformer parameters
         #self.t_d_model = config["t_d_model"]
+        self.t_seq_length = config["t_seq_length"]
         self.t_n_head = config["t_n_head"]
         self.t_n_encoder_layers = config["t_n_encoder_layers"]
         self.t_n_decoder_layers = config["t_n_decoder_layers"]
@@ -57,7 +58,7 @@ class PathFormer(nn.Module):
 
         self.n_tokens = self.n_patches + 4
 
-        self.dec_mask = self.generate_square_subsequent_mask(sz = self.n_patches)
+        self.dec_mask = self.generate_square_subsequent_mask(sz = self.t_seq_length)
 
         #macros for positional information
         self.NO_FIX = self.n_patches
@@ -94,6 +95,24 @@ class PathFormer(nn.Module):
 
         return out
 
+    def create_dec_embeddings(self, seq_dec):
+        dec_embeddings = torch.zeros((self.batch_size, self.t_seq_length, self.D), dtype = torch.float32, requires_grad  = False)
+        for i in range(self.batch_size):
+            idx = 0
+            curr = seq_dec[i]
+            dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.LongTensor([self.START])).squeeze(0)
+            idx += 1
+            for fix_patch in curr:
+                dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.LongTensor([fix_patch])).squeeze(0)
+                idx += 1
+            dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.LongTensor([self.END])).squeeze(0)
+            idx += 1
+            for end_patch in range(idx, self.t_seq_length):
+                dec_embeddings[i, end_patch] = self.decoder_positional_embedding(torch.LongTensor([self.NONE])).squeeze(0)
+            
+        return dec_embeddings
+        
+
     def generate_square_subsequent_mask(self, sz):
         mask = (torch.triu(torch.ones((sz, sz))) == 1).transpose(0, 1)
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
@@ -112,19 +131,7 @@ class PathFormer(nn.Module):
         #       n_patches + 3 (51) = <EMPTY>
 
         #decoder
-        dec_embeddings = torch.zeros((self.batch_size, self.n_patches, self.D), dtype = torch.float32, requires_grad  = False)
-        for i in range(self.batch_size):
-            idx = 0
-            curr = seq_dec[i]
-            dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.LongTensor([self.START])).squeeze(0)
-            idx += 1
-            for fix_patch in curr:
-                dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.LongTensor([fix_patch])).squeeze(0)
-                idx += 1
-            dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.LongTensor([self.END])).squeeze(0)
-            idx += 1
-            for end_patch in range(idx, self.n_patches):
-                dec_embeddings[i, end_patch] = self.decoder_positional_embedding(torch.LongTensor([self.NONE])).squeeze(0)
+        dec_embeddings = self.create_dec_embeddings(seq_dec)
 
         enc_embeddings = self.positional_encoding(enc_embeddings)
         dec_embeddings = self.positional_encoding(dec_embeddings)

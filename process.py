@@ -17,7 +17,7 @@ def create_distance_dictionary(model, path = None):
         height_splits = IMAGE_EMBEDDING_CONFIG['image_splits'][0]
         width_splits = IMAGE_EMBEDDING_CONFIG['image_splits'][1]
 
-        dist_dict = np.zeros([model.n_tokens, model.n_tokens], dtype = np.float32)
+        dist_dict = np.zeros([model.n_patches, model.n_patches], dtype = np.float32)
 
         for tgt in range(model.n_patches):
             for pred in range(model.n_patches):
@@ -41,8 +41,6 @@ def create_distance_dictionary(model, path = None):
 
 
 def spatio_mse(predicted, target, model):
-    predicted = predicted.permute(0, 2, 1)
-
     dist_dict = create_distance_dictionary(model, path = None)
 
     s_mse = 0
@@ -50,7 +48,10 @@ def spatio_mse(predicted, target, model):
     for curr_pred, curr_targ in zip(predicted, target):
         for tgt_num, curr_row in zip(curr_targ, curr_pred):
             if tgt_num == model.END:
-                continue
+                break
+
+            curr_row = curr_row[:model.n_patches]
+            curr_row = F.softmax(curr_row, dim = 0)
             
             torch_dict = torch.from_numpy(dist_dict[tgt_num, :])
             torch_dict.requires_grad = False
@@ -95,7 +96,5 @@ def calculate_loss(predicted, target, model):
     pt_cse = 0#point_type_crossentropy_loss(predicted, target, model)
 
     s_mse = spatio_mse(predicted, target, model)
-
-    print(pt_cse, s_mse)
 
     return weights[0] * pt_cse + weights[1] * s_mse

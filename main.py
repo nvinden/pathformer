@@ -54,7 +54,6 @@ def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler):
         curr_target = target[:, :, i]
 
         result = model(curr_seq_patch, curr_seq_patch, img_emb)
-        result = result.permute(0, 2, 1)
 
         loss = calculate_loss(result, curr_target, model)
         loss.backward()
