@@ -61,6 +61,7 @@ def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler):
         optim.step()
 
         print(loss)
+        print(result[0][0])
         print_percent_on_correct(result, curr_target)
         
         
