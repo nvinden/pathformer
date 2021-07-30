@@ -44,8 +44,6 @@ def train(train_method):
             elif train_method == "on_pic":
                 pass
 
-            result = model(seq_patch[:, 0], seq_patch[:, 0], img_emb)
-
 def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler):
     for i in range(seq_patch.shape[1]):
         optim.zero_grad()
