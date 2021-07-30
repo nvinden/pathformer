@@ -1,2 +1,4 @@
 Datasets/*
 upload.sh
+
+__pycache__/*
