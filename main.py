@@ -47,7 +47,7 @@ def train(train_method):
             result = model(seq_patch[:, 0], seq_patch[:, 0], img_emb)
 
 def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler):
-    for i in range(seq_patch.shape[0]):
+    for i in range(seq_patch.shape[1]):
         optim.zero_grad()
 
         curr_seq_patch = seq_patch[:, i]
