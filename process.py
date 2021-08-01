@@ -108,7 +108,7 @@ def calculate_loss(predicted, target, model):
 
     weights = TRAIN_CONFIG['loss_weights']
 
-    pt_cse = cross_entropy_loss(predicted, target, model)
+    pt_cse = 0#cross_entropy_loss(predicted, target, model)
 
     s_mse = spatio_mse(predicted, target, model)
 

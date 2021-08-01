@@ -34,6 +34,6 @@ MODEL_CONFIG = {
 
 TRAIN_CONFIG = {
 	"n_epochs": 100,
-	"lr": 15.0,
+	"lr": 0.5,
 	"loss_weights": [1, 1]
 }
