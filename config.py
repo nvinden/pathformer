@@ -10,7 +10,7 @@ IMAGE_EMBEDDING_CONFIG = {
 	'height': 600,
 	'width': 800,
 	'image_splits': [6, 8],
-	'data_range': "all",
+	'data_range': 32,
 }
 
 MODEL_CONFIG = {
