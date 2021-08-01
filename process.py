@@ -89,6 +89,18 @@ def point_type_crossentropy_loss(predicted, target, model):
 
     return out
 
+def cross_entropy_loss(predicted, target, model):
+    cel = nn.NLLLoss()
+
+    out = 0
+
+    for pred, tgt in zip(predicted, target):
+        pred = torch.log(pred)
+        out += cel(pred, tgt)
+
+    out /= model.batch_size
+
+    return out
 
 def calculate_loss(predicted, target, model):
     #predicted (batch, n_tokens, n_patches)
@@ -96,9 +108,11 @@ def calculate_loss(predicted, target, model):
 
     weights = TRAIN_CONFIG['loss_weights']
 
-    pt_cse = 0#point_type_crossentropy_loss(predicted, target, model)
+    pt_cse = cross_entropy_loss(predicted, target, model)
 
     s_mse = spatio_mse(predicted, target, model)
+
+    print(pt_cse, s_mse)
 
     return weights[0] * pt_cse + weights[1] * s_mse
 

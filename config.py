@@ -15,17 +15,17 @@ IMAGE_EMBEDDING_CONFIG = {
 
 MODEL_CONFIG = {
 	'batch_size': 32,
-	"D": 1120,
+	"D": 768,
 	"img_patch_area": 30000,
 
-	"image_embedding_dimension": 1024,
-	"position_embedding_dimension": 96,
+	"image_embedding_dimension": 748,
+	"position_embedding_dimension": 20,
 
 	"t_seq_length": 25,
-	"t_n_head": 16,
+	"t_n_head": 12,
 	"t_n_encoder_layers": 12,
 	"t_n_decoder_layers": 12,
-	"t_dim_feedfordward": 4096,
+	"t_dim_feedfordward": 3072,
 	"t_dropout": 0.1,
 	"t_activation": "relu",
 	"t_batch_first": True
