@@ -51,7 +51,7 @@ class PathFormer(nn.Module):
         self.t_n_head = config["t_n_head"]
         self.t_n_encoder_layers = config["t_n_encoder_layers"]
         self.t_n_decoder_layers = config["t_n_decoder_layers"]
-        self.t_dim_feedfordward = config["t_dim_feedfordward"]
+        self.t_dim_feedforward = config["t_dim_feedforward"]
         self.t_dropout = config["t_dropout"]
         self.t_activation = config["t_activation"]
         self.t_batch_first = config["t_batch_first"]
@@ -76,7 +76,7 @@ class PathFormer(nn.Module):
                                             nhead = self.t_n_head,
                                             num_encoder_layers = self.t_n_encoder_layers,
                                             num_decoder_layers = self.t_n_decoder_layers,
-                                            dim_feedforward = self.t_dim_feedfordward,
+                                            dim_feedforward = self.t_dim_feedforward,
                                             dropout = self.t_dropout,
                                             activation = self.t_activation,
                                             batch_first = self.t_batch_first)
