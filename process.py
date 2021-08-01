@@ -129,13 +129,17 @@ def print_percent_on_correct(result, target):
         target = target[0]
 
     avg_correctness = 0
+    div = 0
 
     for res, tgt in zip(result, target):
+        if tgt == 51:
+            break
+        div += 1
         avg_correctness += res[tgt]
         max_idx = torch.argmax(res)
         print(tgt, max_idx, res[tgt])
 
-    avg_correctness /= target.shape[0]
+    avg_correctness /= div
 
     print(f"Average Correctness: {avg_correctness}")
     
