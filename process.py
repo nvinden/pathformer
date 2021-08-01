@@ -96,7 +96,7 @@ def cross_entropy_loss(predicted, target, model):
 
     for pred, tgt in zip(predicted, target):
         curr_out = 0
-        index = ((tgt == model.END).nonzero()[0])
+        index = ((tgt == model.NONE).nonzero()[0])
 
         pred = torch.log(pred)
 
@@ -132,7 +132,8 @@ def print_percent_on_correct(result, target):
 
     for res, tgt in zip(result, target):
         avg_correctness += res[tgt]
-        print(tgt, res[tgt])
+        max_idx = torch.argmax(res)
+        print(tgt, max_idx, res[tgt])
 
     avg_correctness /= target.shape[0]
 
