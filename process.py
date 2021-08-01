@@ -95,9 +95,15 @@ def cross_entropy_loss(predicted, target, model):
     out = 0
 
     for pred, tgt in zip(predicted, target):
-        pred = torch.log(pred)
-        out += cel(pred, tgt)
+        curr_out = 0
+        index = ((tgt == model.END).nonzero()[0])
 
+        pred = torch.log(pred)
+
+        curr_out = cel(pred[:index], tgt[:index])
+        curr_out /= index.item()
+
+        out += curr_out
     out /= model.batch_size
 
     return out
