@@ -1,6 +1,6 @@
-Datasets/*
+Datasets
 upload.sh
 
-__pycache__/*
+__pycache__
 
-saves/*
+saves
