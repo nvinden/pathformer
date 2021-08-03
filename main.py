@@ -67,9 +67,9 @@ def train(boot_data):
             elif train_method == "on_pic":
                 pass
 
-            print(f"epoch {epoch} {train_method} loss: {loss}")
+        print(f"epoch {epoch} {train_method} loss: {loss}")
 
-            save_data(boot_data['path'], epoch, model, scheduler, train_method, optim, loss)
+        save_data(boot_data['path'], epoch, model, scheduler, train_method, optim, loss)
 
 def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler, boot_data):
     total_loss = 0
