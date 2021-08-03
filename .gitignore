@@ -2,3 +2,5 @@ Datasets/*
 upload.sh
 
 __pycache__/*
+
+saves/*
