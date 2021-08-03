@@ -152,8 +152,6 @@ def calculate_loss(predicted, target, model):
 
     s_mse = 0#spatio_mse(predicted, target, model)
 
-    print(pt_cse, s_mse)
-
     return weights[0] * pt_cse + weights[1] * s_mse
 
 def print_percent_on_correct(result, target, verbose):
