@@ -156,7 +156,7 @@ def calculate_loss(predicted, target, model):
 
     return weights[0] * pt_cse + weights[1] * s_mse
 
-def print_percent_on_correct(result, target):
+def print_percent_on_correct(result, target, verbose):
     if len(result.shape) == 3:
         result = result[0]
     if len(target.shape) == 2:
@@ -171,7 +171,8 @@ def print_percent_on_correct(result, target):
         div += 1
         avg_correctness += res[tgt]
         max_idx = torch.argmax(res)
-        print(tgt, max_idx, res[tgt])
+        if verbose:
+            print(tgt, max_idx, res[tgt])
 
     avg_correctness /= div
 

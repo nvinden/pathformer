@@ -63,7 +63,7 @@ def train(boot_data):
             tgt.requires_grad = False
 
             if train_method == "on_self":
-                loss = _train_on_self(model, seq_patch, img_emb, tgt,  optim, scheduler)
+                loss = _train_on_self(model, seq_patch, img_emb, tgt,  optim, scheduler, boot_data)
             elif train_method == "on_pic":
                 pass
 
@@ -71,7 +71,7 @@ def train(boot_data):
 
             save_data(boot_data['path'], epoch, model, scheduler, train_method, optim, loss)
 
-def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler):
+def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler, boot_data):
     total_loss = 0
     for i in range(seq_patch.shape[1]):
         optim.zero_grad()
@@ -89,7 +89,7 @@ def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler):
         total_loss += loss
 
         #print(result[0][0])
-        #print_percent_on_correct(result, curr_target)
+        print_percent_on_correct(result, curr_target, boot_data['v'])
 
     return total_loss / seq_patch.shape[1]
 
