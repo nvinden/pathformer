@@ -4,11 +4,45 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from model import PathFormer
+from config import *
+
 import math
 import os
 
 import numpy as np
 
+def save_data(path, epoch, model, scheduler, train_method, optimizer, loss):
+    torch.save({
+            'epoch': epoch,
+            'train_method': train_method,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
+            'loss': loss,
+    }, path)
+
+    print("Model saved...")
+
+def load_data(path):
+    data = torch.load(path)
+
+    epoch = data['epoch']
+    train_method = data['train_method']
+    loss = data['loss']
+
+    model = PathFormer(MODEL_CONFIG, IMAGE_EMBEDDING_CONFIG, train_method)
+    model.load_state_dict(data['model_state_dict'])
+
+    optim = torch.optim.SGD(model.parameters(), lr=TRAIN_CONFIG['lr'])
+    optim.load_state_dict(data['optimizer_state_dict'])
+
+    scheduler = torch.optim.lr_scheduler.StepLR(optim, 1.0, gamma=0.95)
+    scheduler.load_state_dict(data['scheduler_state_dict'])
+
+    print(f"Model loaded from {path}...")
+
+    return epoch, train_method, model, optim, scheduler, loss
 
 def create_distance_dictionary(model, path = None):
     if path is not None and os.path.isfile(path):
