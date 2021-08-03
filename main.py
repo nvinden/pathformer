@@ -1,6 +1,6 @@
 from saliency import dataset
 from config import *
-from dataset import ImageEmbeddings, create_batches, create_target_sequence
+from dataset import ImageEmbeddings, create_batches, create_target_sequence, get_data_from_batch_number
 from model import PathFormer
 from process import calculate_loss, print_percent_on_correct, load_data, save_data
 
@@ -32,15 +32,6 @@ def train(boot_data):
     MODEL_CONFIG = foo.MODEL_CONFIG
     TRAIN_CONFIG = foo.TRAIN_CONFIG
 
-    #loading dataset
-    ds = ImageEmbeddings(IMAGE_EMBEDDING_CONFIG, False)
-
-    batch_size = MODEL_CONFIG['batch_size']
-    seq_batches = create_batches(ds.seq, batch_size)
-    stim_batches = create_batches(ds.stim, batch_size)
-    img_emb_batches = create_batches(ds.img_emb, batch_size)
-    seq_patch_batches = create_batches(ds.pos_emb, batch_size)
-
     #creating model and system surrounding model
     if os.path.isfile(boot_data['path']):
         curr_epoch, train_method, model, optim, scheduler, loss = load_data(boot_data['path'])
@@ -50,14 +41,18 @@ def train(boot_data):
         model = PathFormer(MODEL_CONFIG, IMAGE_EMBEDDING_CONFIG, train_method)
         optim = torch.optim.SGD(model.parameters(), lr=TRAIN_CONFIG['lr'])
         scheduler = torch.optim.lr_scheduler.StepLR(optim, 1.0, gamma=0.95)
+
+    train_max_range = (IMAGE_EMBEDDING_CONFIG['train_idx'][1] - IMAGE_EMBEDDING_CONFIG['train_idx'][0]) // MODEL_CONFIG['batch_size']
+    test_max_range = (IMAGE_EMBEDDING_CONFIG['test_idx'][1] - IMAGE_EMBEDDING_CONFIG['test_idx'][0]) // MODEL_CONFIG['batch_size']
+    val_max_range = (IMAGE_EMBEDDING_CONFIG['val_idx'][1] - IMAGE_EMBEDDING_CONFIG['val_idx'][0]) // MODEL_CONFIG['batch_size']
         
     model.train()
 
     start_time = time.time()
 
     for epoch in range(curr_epoch, TRAIN_CONFIG['n_epochs']):
-        for i_batch, data in enumerate(zip(seq_batches, stim_batches, img_emb_batches, seq_patch_batches)):
-            (seq, stim, img_emb, seq_patch) = data
+        for i_batch in range(train_max_range):
+            (seq, stim, img_emb, seq_patch) = get_data_from_batch_number(i_batch, IMAGE_EMBEDDING_CONFIG, boot_data['r'], "train")
 
             tgt = create_target_sequence(seq_patch, model)
             tgt.requires_grad = False
@@ -88,7 +83,6 @@ def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler, boot_dat
 
         total_loss += loss
 
-        #print(result[0][0])
         print_percent_on_correct(result, curr_target, boot_data['v'])
 
     return total_loss / seq_patch.shape[1]
@@ -101,6 +95,7 @@ def main():
     parser.add_argument('--path', help='path for save/load of data')
     parser.add_argument('--conf', help='path for the config file')
     parser.add_argument('-v', help='verbose mode', action='store_true')
+    parser.add_argument('-r', help='re-download dataset', action='store_true')
 
     args = parser.parse_args()
     boot_info = vars(args)

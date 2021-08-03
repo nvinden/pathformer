@@ -7,7 +7,8 @@ from saliency import dataset
 from config import *
 
 class ImageEmbeddings(Dataset):
-    def __init__(self, config, fresh_download=False):
+    def __init__(self, config, fresh_download=False, data_range = "all"):
+        #data range: "all" or [0, 200] <- where 0 is start location and 200 is end
         self.data_path = config['data_path']
         self.dataset_name = config['dataset_name']
         self.image_splits = config['image_splits']
@@ -16,18 +17,22 @@ class ImageEmbeddings(Dataset):
         ds = dataset.SaliencyDataset(config=DATASET_CONFIG)
         ds.load(self.dataset_name)
 
-        if self.data_range == "all":
+        if data_range == "all":
             self.seq = ds.get('sequence', percentile=True, modify='fix')
             self.stim = ds.get('stimuli', )
             self.stim_paths = ds.get('stimuli_path')
         else:
-            rng = self.data_range
-            self.seq = ds.get('sequence', percentile=True, modify='fix', index = range(rng))
-            self.stim = ds.get('stimuli', index = range(rng))
-            self.stim_paths = ds.get('stimuli_path', index = range(rng))
+            rng = data_range
+            self.seq = ds.get('sequence', percentile=True, modify='fix', index=range(data_range[0], data_range[1]))
+            self.stim = ds.get('stimuli', index = range(data_range[0], data_range[1]))
+            self.stim_paths = ds.get('stimuli_path', index = range(data_range[0], data_range[1]))
 
-        self.image_embedding_path = os.path.join(self.data_path, "image_embeddings.npy")
-        self.position_embedding_path = os.path.join(self.data_path, "position_embeddings.npy")
+        if data_range == "all":
+            self.image_embedding_path = os.path.join(self.data_path, "image_embeddings.npy")
+            self.position_embedding_path = os.path.join(self.data_path, "position_embeddings.npy")
+        else:
+            self.image_embedding_path = os.path.join(self.data_path, f"image_embeddings_{data_range[0]}.npy")
+            self.position_embedding_path = os.path.join(self.data_path, f"position_embeddings_{data_range[0]}.npy")
 
         if fresh_download or not os.path.isfile(self.image_embedding_path):
             img_emb = self._create_img_embeddings()
@@ -43,7 +48,7 @@ class ImageEmbeddings(Dataset):
             pos_emb = self._create_pos_embeddings()
             self.pos_emb = pos_emb
         elif os.path.isfile(self.position_embedding_path):
-            self.pos_emb = np.load(self.position_embedding_path)
+            self.pos_emb = np.load(self.position_embedding_path, allow_pickle=True)
             if self.pos_emb.shape[0] != self.seq.shape[0]:
                 self.pos_emb = self._create_pos_embeddings()
         else:
@@ -70,6 +75,8 @@ class ImageEmbeddings(Dataset):
                 observer_list.append(np.array(final_batch, dtype = np.uint8))
 
             pos_emb.append(observer_list)
+
+        np.save(self.position_embedding_path, pos_emb, allow_pickle = True)
         
         return np.array(pos_emb)
 
@@ -126,3 +133,35 @@ def create_target_sequence(seq, model):
             out[i, len(fix) + 1:, j] = torch.full([model.t_seq_length - len(fix) - 1], model.NONE, dtype = torch.long)
     #create array thing
     return out
+
+def get_data_from_batch_number(idx, config, redownload, data_type = "train"):
+    if data_type not in ['train', 'test', 'val']:
+        raise Exception("Must be train, test, or val")
+
+    batch_size = MODEL_CONFIG['batch_size']
+
+    train_start = IMAGE_EMBEDDING_CONFIG['train_idx'][0]
+    test_start = IMAGE_EMBEDDING_CONFIG['test_idx'][0]
+    val_start = IMAGE_EMBEDDING_CONFIG['val_idx'][0]
+
+    if data_type == "train":
+        if idx >= (IMAGE_EMBEDDING_CONFIG['train_idx'][1] - IMAGE_EMBEDDING_CONFIG['train_idx'][0]) // batch_size:
+            raise ValueError('Train IDX not in range')
+        else:
+            data_range = [train_start + idx * batch_size, train_start + (idx + 1) * batch_size]
+
+    elif data_type == "test":
+        if idx >= (IMAGE_EMBEDDING_CONFIG['test_idx'][1] - IMAGE_EMBEDDING_CONFIG['test_idx'][0]) // batch_size:
+            raise ValueError('Test IDX not in range')
+        else:
+            data_range = [test_start + idx * batch_size, test_start + (idx + 1) * batch_size]
+
+    elif data_type == "val":
+        if idx >= (IMAGE_EMBEDDING_CONFIG['val_idx'][1] - IMAGE_EMBEDDING_CONFIG['val_idx'][0]) // batch_size:
+            raise ValueError('Val IDX not in range')
+        else:
+            data_range = [val_start + idx * batch_size, val_start + (idx + 1) * batch_size]
+
+    ds = ImageEmbeddings(IMAGE_EMBEDDING_CONFIG, fresh_download = redownload, data_range = data_range)
+
+    return ds.seq, ds.stim, ds.img_emb, ds.pos_emb

@@ -9,6 +9,10 @@ IMAGE_EMBEDDING_CONFIG = {
 	'dataset_name': "OSIE",
 	'height': 600,
 	'width': 800,
+	'n_images': 700,
+	'train_idx': [0, 500],
+	'test_idx': [500, 600],
+	'val_idx': [600, 700],
 	'image_splits': [6, 8],
 	'data_range': "all",
 }
