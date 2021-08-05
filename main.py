@@ -35,7 +35,7 @@ def train(boot_data):
     TRAIN_CONFIG = foo.TRAIN_CONFIG
 
     #creating model and system surrounding model
-    if os.path.isfile(boot_data['path']):
+    if os.path.isfile(boot_data['path']) and boot_data['r'] == False:
         curr_epoch, CURR_TRAIN_METHOD, model, optim, scheduler, loss = load_data(boot_data['path'])
     else:
         curr_epoch = 0
