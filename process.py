@@ -171,20 +171,17 @@ def percent_on_correct(result, target, verbose):
     return avg_correctness
 
 def validate(model, val_max_range, boot_data):
-    '''
     loss_count = 0
     accuracy_count = 0
 
     model.eval()
     for i_batch in range(val_max_range):
-        print("batch")
         (seq, stim, img_emb, seq_patch) = get_data_from_batch_number(i_batch, IMAGE_EMBEDDING_CONFIG, boot_data['r'], "val")
 
         viewer_loss_count = 0
         viewer_accuracy_count = 0
 
         for i in range(seq_patch.shape[-1]):
-            print("obs")
             tgt = create_target_sequence(seq_patch, model)
             tgt.requires_grad = False
 
@@ -201,10 +198,6 @@ def validate(model, val_max_range, boot_data):
     
     loss_count /= val_max_range
     accuracy_count /= val_max_range
-    '''
-
-    loss_count = torch.tensor(0.44)
-    accuracy_count = torch.tensor(0.025)
 
     return loss_count, accuracy_count
 
