@@ -36,13 +36,14 @@ def train(boot_data):
 
     #creating model and system surrounding model
     if os.path.isfile(boot_data['path']) and boot_data['r'] == False:
-        curr_epoch, CURR_TRAIN_METHOD, model, optim, scheduler, loss = load_data(boot_data['path'])
+        curr_epoch, CURR_TRAIN_METHOD, model, optim, scheduler, log_list = load_data(boot_data['path'])
     else:
         curr_epoch = 0
         CURR_TRAIN_METHOD = "on_self"
         model = PathFormer(MODEL_CONFIG, IMAGE_EMBEDDING_CONFIG, CURR_TRAIN_METHOD)
         optim = torch.optim.SGD(model.parameters(), lr=TRAIN_CONFIG['on_self']['lr'])
         scheduler = torch.optim.lr_scheduler.StepLR(optim, 1.0, gamma=0.95)
+        log_list = {}
 
     CURR_TRAIN_CONFIG = TRAIN_CONFIG[CURR_TRAIN_METHOD]
 
@@ -57,6 +58,9 @@ def train(boot_data):
     while CURR_TRAIN_METHOD != "end":
         model.train_method = CURR_TRAIN_METHOD
         for epoch in range(curr_epoch, CURR_TRAIN_CONFIG['n_epochs']):
+            epoch_total_loss = 0
+            epoch_total_accuracy = 0
+
             for i_batch in range(train_max_range):
                 val_loss, val_accuracy = validate(model, val_max_range, boot_data)
 
@@ -67,18 +71,28 @@ def train(boot_data):
                 tgt.requires_grad = False
 
                 if CURR_TRAIN_METHOD == "on_self":
-                    loss = _train_on_self(model, seq_patch, img_emb, tgt,  optim, scheduler, boot_data)
+                    epoch_total_loss += _train_on_self(model, seq_patch, img_emb, tgt,  optim, scheduler, boot_data)
                 elif CURR_TRAIN_METHOD == "on_pic":
                     print("ON PIC EPOCH")
                 elif train_method == "full":
                     print("FULL EPOCH")
 
-            loss = 0
+            epoch_total_loss /= train_max_range
+            epoch_total_accuracy /= train_max_range
 
             val_loss, val_accuracy = validate(model, val_max_range, boot_data)
 
-            save_data(boot_data['path'], epoch, model, scheduler, train_method, optim, loss)
+            add_to_log_list(log_list, CURR_TRAIN_METHOD, epoch_total_loss, epoch_total_accuracy, val_loss, val_accuracy)
+
+            print(f"Epoch {epoch}: on {CURR_TRAIN_METHOD}")
+            print(f"        Loss: {epoch_total_loss}")
+            print(f"    Accuracy: {epoch_total_accuracy}")
+            print(f"    Val Loss: {val_loss}")
+            print(f"Val Accuracy: {val_accuracy}")
+
+            save_data(boot_data['path'], epoch, model, scheduler, CURR_TRAIN_METHOD, optim, log_list)
         
+        #switching to next phase
         if train_method == "on_self":
             if "on_pic" in TRAIN_CONFIG:
                 train_method = "on_pic"
