@@ -2,5 +2,7 @@ Datasets
 upload.sh
 
 __pycache__
+.vscode
+.empty
 
 saves

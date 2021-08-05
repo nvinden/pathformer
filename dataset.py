@@ -97,7 +97,7 @@ class ImageEmbeddings(Dataset):
             #normalizing image
             tiles = np.array(tiles, dtype=np.float32)
             tiles = tiles / 127.5 - 1
-            tiles = tiles.reshape(height_splits * width_splits, -1)
+            #tiles = tiles.reshape(height_splits * width_splits, -1)
 
             img_emb.append(tiles)
         img_emb = np.array(img_emb)

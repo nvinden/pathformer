@@ -6,6 +6,7 @@ import torch.nn.functional as F
 
 from model import PathFormer
 from config import *
+from dataset import get_data_from_batch_number, create_target_sequence
 
 import math
 import os
@@ -34,7 +35,7 @@ def load_data(path):
     model = PathFormer(MODEL_CONFIG, IMAGE_EMBEDDING_CONFIG, train_method)
     model.load_state_dict(data['model_state_dict'])
 
-    optim = torch.optim.SGD(model.parameters(), lr=TRAIN_CONFIG['lr'])
+    optim = torch.optim.SGD(model.parameters(), lr=TRAIN_CONFIG[train_method]['lr'])
     optim.load_state_dict(data['optimizer_state_dict'])
 
     scheduler = torch.optim.lr_scheduler.StepLR(optim, 1.0, gamma=0.95)
@@ -146,7 +147,7 @@ def calculate_loss(predicted, target, model):
     #predicted (batch, n_tokens, n_patches)
     #target (batch, n_patches)
 
-    weights = TRAIN_CONFIG['loss_weights']
+    weights = TRAIN_CONFIG[model.train_method]['loss_weights']
 
     pt_cse = cross_entropy_loss(predicted, target, model)
 
@@ -154,25 +155,62 @@ def calculate_loss(predicted, target, model):
 
     return weights[0] * pt_cse + weights[1] * s_mse
 
-def print_percent_on_correct(result, target, verbose):
-    if len(result.shape) == 3:
-        result = result[0]
-    if len(target.shape) == 2:
-        target = target[0]
-
+def percent_on_correct(result, target, verbose):
     avg_correctness = 0
     div = 0
 
-    for res, tgt in zip(result, target):
-        if tgt == 51:
-            break
-        div += 1
-        avg_correctness += res[tgt]
-        max_idx = torch.argmax(res)
-        if verbose:
-            print(tgt, max_idx, res[tgt])
+    for res_batch, tgt_batch in zip(result, target):
+        for res_viewer, tgt_viewer in zip(res_batch, tgt_batch):
+            for res, tgt in zip(res_viewer, tgt_viewer):
+                if tgt == 51:
+                    break
+                div += 1
+                avg_correctness += res_viewer[tgt]
+                max_idx = torch.argmax(res)
+                if verbose:
+                    print(tgt, max_idx, res[tgt])
 
     avg_correctness /= div
 
-    print(f"Average Correctness: {avg_correctness}")
+    return avg_correctness
+
+def validate(model, val_max_range, boot_data):
+    loss_count = 0
+    accuracy_count = 0
+
+    model.eval()
+    for i_batch in range(val_max_range):
+        print("batch")
+        (seq, stim, img_emb, seq_patch) = get_data_from_batch_number(i_batch, IMAGE_EMBEDDING_CONFIG, boot_data['r'], "val")
+
+        viewer_loss_count = 0
+        viewer_accuracy_count = 0
+
+        for i in range(seq_patch.shape[-1]):
+            print("obs")
+            tgt = create_target_sequence(seq_patch, model)
+            tgt.requires_grad = False
+
+            curr_seq_patch = seq_patch[:, i]
+            curr_target = tgt[:, :, i]
+
+            result = model(curr_seq_patch, img_emb)
+
+            viewer_loss_count += calculate_loss(result, curr_target, model)
+            viewer_accuracy_count += percent_on_correct(result, tgt, False)
+
+        loss_count += viewer_loss_count / seq_patch.shape[-1]
+        accuracy_count += viewer_accuracy_count / seq_patch.shape[-1]
     
+    loss_count /= val_max_range
+    accuracy_count /= val_max_range
+
+    print(loss_count)
+    print(accuracy_count)
+
+    return loss_count, accuracy_count
+
+
+
+
+        

@@ -25,9 +25,7 @@ class PathFormer(nn.Module):
     def __init__(self, config, img_config, train_method):
         super(PathFormer, self).__init__()
 
-        self.train_method = train_method
-
-        assert self.train_method in ["on_self", "on_pic"]
+        assert train_method in ["on_self", "on_pic", "full"]
 
         #image parameters
         self.image_splits = img_config['image_splits']
@@ -46,7 +44,6 @@ class PathFormer(nn.Module):
 
         assert self.image_embedding_dimension + self.position_embedding_dimension == self.D
         #transformer parameters
-        #self.t_d_model = config["t_d_model"]
         self.t_seq_length = config["t_seq_length"]
         self.t_n_head = config["t_n_head"]
         self.t_n_encoder_layers = config["t_n_encoder_layers"]
@@ -66,11 +63,18 @@ class PathFormer(nn.Module):
         self.END = self.n_patches + 2
         self.NONE = self.n_patches + 3
 
-        self.encoder_linear_embedding = nn.Linear(self.img_patch_area, self.D)
+        #convolutional linear embedding
+        self.pool = nn.MaxPool2d(2, 2)
+        self.encoder_conv1 = nn.Conv2d(in_channels = 3, out_channels = 32, kernel_size = 7, stride=1, padding=3)
+        self.encoder_conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 5, stride=1, padding=2)
+        self.encoder_conv3 = nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size = 5, stride=1, padding=2)
+        self.encoder_conv4 = nn.Conv2d(in_channels = 128, out_channels = 256, kernel_size = 3, stride=1, padding=1)
+        self.encoder_linear = nn.Linear(256 * 6 * 6, self.image_embedding_dimension)
+
         #self.encoder_positional_embedding = nn.Embedding(self.n_tokens, self.position_embedding_dimension)
         self.decoder_positional_embedding = nn.Embedding(self.n_tokens, self.D)
 
-        self.positional_encoding = PositionalEncoding(self.D, self.t_dropout, max_len = self.n_patches)
+        self.positional_encoding = PositionalEncoding(self.D, self.t_dropout, max_len = self.D)
 
         self.transformer = nn.Transformer(d_model = self.D,
                                             nhead = self.t_n_head,
@@ -122,21 +126,32 @@ class PathFormer(nn.Module):
         img_patches = torch.from_numpy(img_patches)
         img_patches.requires_grad = False
 
-        enc_embeddings = self.encoder_linear_embedding(img_patches)
+        #convolution
+        img_patches = img_patches.permute([0, 1, 4, 2, 3])
+        img_patches = img_patches.view([-1, 3, self.patch_height, self.patch_width])
 
-        #FOR EMBEDDING
-        #token: n_patches (48) = no fixations
-        #       n_patches + 1 (49) = <START>
-        #       n_patches + 2 (50) = <END>
-        #       n_patches + 3 (51) = <EMPTY>
+        if self.train_method == "on_self":
+            enc_emb = torch.zeros([self.batch_size, self.n_patches, self.D])
+        else:
+            enc_emb = self.encoder_conv1(img_patches)
+            enc_emb = self.pool(F.relu(enc_emb))
+            enc_emb = self.encoder_conv2(enc_emb)
+            enc_emb = self.pool(F.relu(enc_emb))
+            enc_emb = self.encoder_conv3(enc_emb)
+            enc_emb = self.pool(F.relu(enc_emb))
+            enc_emb = self.encoder_conv4(enc_emb)
+            enc_emb = self.pool(F.relu(enc_emb))
+            enc_emb = enc_emb.view(self.batch_size * self.n_patches, -1)
+            enc_emb = self.encoder_linear(enc_emb)
+            enc_emb = enc_emb.view(self.batch_size, self.n_patches, -1)
 
         #decoder
-        dec_embeddings = self.create_dec_embeddings(seq)
+        dec_emb = self.create_dec_embeddings(seq)
 
-        enc_embeddings = self.positional_encoding(enc_embeddings)
-        dec_embeddings = self.positional_encoding(dec_embeddings)
+        enc_emb = self.positional_encoding(enc_emb)
+        dec_emb = self.positional_encoding(dec_emb)
         
-        out = self.transformer(enc_embeddings, dec_embeddings, tgt_mask = self.dec_mask)
+        out = self.transformer(enc_emb, dec_emb, tgt_mask = self.dec_mask)
         out = self.output_linear(out)
         out = F.softmax(out, dim = -1)
 
