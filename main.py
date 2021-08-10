@@ -47,8 +47,10 @@ def train(boot_data):
 
     #creating model and system surrounding model
     if os.path.isfile(boot_data['path']) and boot_data['r'] == False:
+        print(f"Loading from {boot_data['path']...}")
         curr_epoch, CURR_TRAIN_METHOD, model, optim, scheduler, log_list = load_data(boot_data['path'])
     else:
+        print("Creating new run...")
         curr_epoch = 0
         CURR_TRAIN_METHOD = "on_self"
         model = PathFormer(MODEL_CONFIG, IMAGE_EMBEDDING_CONFIG, CURR_TRAIN_METHOD)
@@ -86,9 +88,6 @@ def train(boot_data):
                     print("ON PIC EPOCH")
                 elif CURR_TRAIN_METHOD == "full":
                     print("FULL EPOCH")
-
-                print(epoch_total_loss)
-                print(epoch_total_accuracy)
 
             epoch_total_loss /= len(train_loader)
             epoch_total_accuracy /= len(train_loader)
