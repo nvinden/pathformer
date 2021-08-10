@@ -35,12 +35,12 @@ MODEL_CONFIG = {
 
 TRAIN_CONFIG = {
 	"on_self": {
-		"n_epochs": 150,
+		"n_epochs": 10,
 		"lr": 0.5,
 		"loss_weights": [1, 1]
 		},
 	"on_pic": {
-		"n_epochs": 200,
+		"n_epochs": 100,
 		"lr": 0.5,
 		"loss_weights": [1, 1]
 		}
