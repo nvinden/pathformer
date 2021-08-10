@@ -129,7 +129,7 @@ class PathformerData(Dataset):
 
             observer_list.append(np.array(final_batch, dtype = np.uint8))
         
-        observer_list = np.array(observer_list)
+        observer_list = np.array(observer_list, dtype = np.object)
         observer_list = self.pad_sequence_patch(observer_list)
 
         np.save(filename, observer_list, allow_pickle = True)

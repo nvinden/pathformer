@@ -41,9 +41,9 @@ def train(boot_data):
 
     train_set, test_set, val_set = torch.utils.data.random_split(dataset, [ttv_dim[0], ttv_dim[1], ttv_dim[2]])
 
-    train_loader = DataLoader(train_set, batch_size = MODEL_CONFIG['batch_size'], shuffle = True)
-    test_loader = DataLoader(test_set, batch_size = MODEL_CONFIG['batch_size'], shuffle = True)
-    val_loader = DataLoader(val_set, batch_size = MODEL_CONFIG['batch_size'], shuffle = True)
+    train_loader = DataLoader(train_set, batch_size = MODEL_CONFIG['batch_size'], shuffle = True, drop_last = True)
+    test_loader = DataLoader(test_set, batch_size = MODEL_CONFIG['batch_size'], shuffle = True, drop_last = True)
+    val_loader = DataLoader(val_set, batch_size = MODEL_CONFIG['batch_size'], shuffle = True, drop_last = True)
 
     #creating model and system surrounding model
     if os.path.isfile(boot_data['path']) and boot_data['r'] == False:
@@ -58,11 +58,12 @@ def train(boot_data):
 
     CURR_TRAIN_CONFIG = TRAIN_CONFIG[CURR_TRAIN_METHOD]
     
-    start_time = time.time()
 
     while CURR_TRAIN_METHOD != "end":
         model.train_method = CURR_TRAIN_METHOD
         for epoch in range(curr_epoch, CURR_TRAIN_CONFIG['n_epochs']):
+            start_time = time.time()
+
             epoch_total_loss = 0
             epoch_total_accuracy = 0
 
@@ -73,8 +74,6 @@ def train(boot_data):
                 img_emb = data['image_embedding']
                 seq_patch = data['sequence_patch']
                 
-                #(seq, stim, img_emb, seq_patch) = get_data_from_batch_number(0, IMAGE_EMBEDDING_CONFIG, boot_data['r'], "train")
-
                 #tgt: [32, 25, 15]
                 tgt = create_target_sequence(seq_patch, model)
                 tgt.requires_grad = False
@@ -98,6 +97,7 @@ def train(boot_data):
             print(f"     Accuracy: {epoch_total_accuracy}")
             print(f"     Val Loss: {val_loss}")
             print(f" Val Accuracy: {val_accuracy}")
+            print(f" TIME: {time.time() - start_time}")
 
             save_data(boot_data['path'], epoch, model, scheduler, CURR_TRAIN_METHOD, optim, log_list)
         
