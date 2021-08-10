@@ -152,19 +152,18 @@ def calculate_loss(predicted, target, model):
     return weights[0] * pt_cse + weights[1] * s_mse
 
 def percent_on_correct(result, target, verbose):
+    #result: [32, 25, 52]
+    #target: [32, 25]
     avg_correctness = 0
     div = 0
 
     for res_batch, tgt_batch in zip(result, target):
-        for res_viewer, tgt_viewer in zip(res_batch, tgt_batch):
-            for res, tgt in zip(res_viewer, tgt_viewer):
-                if tgt == 51:
-                    break
-                div += 1
-                avg_correctness += res_viewer[tgt]
-                max_idx = torch.argmax(res)
-                if verbose:
-                    print(tgt, max_idx, res[tgt])
+        for res_point, tgt_point in zip(res_batch, tgt_batch):
+            if tgt_point == 51:
+                break
+            div += 1
+            avg_correctness += res_point[tgt_point]
+
 
     avg_correctness /= div
 
@@ -196,7 +195,7 @@ def validate(model, val_loader, boot_data):
             result = model(curr_seq_patch, img_emb)
 
             viewer_loss_count += calculate_loss(result, curr_target, model)
-            viewer_accuracy_count += percent_on_correct(result, tgt, False)
+            viewer_accuracy_count += percent_on_correct(result, curr_target, False)
 
         loss_count += viewer_loss_count / seq_patch.shape[-1]
         accuracy_count += viewer_accuracy_count / seq_patch.shape[-1]

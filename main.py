@@ -64,8 +64,6 @@ def train(boot_data):
         for epoch in range(curr_epoch, CURR_TRAIN_CONFIG['n_epochs']):
             start_time = time.time()
 
-            val_loss, val_accuracy = validate(model, val_loader, boot_data)
-
             epoch_total_loss = 0
             epoch_total_accuracy = 0
 
@@ -81,11 +79,16 @@ def train(boot_data):
                 tgt.requires_grad = False
 
                 if CURR_TRAIN_METHOD == "on_self":
-                    epoch_total_loss += _train_on_self(model, seq_patch, img_emb, tgt,  optim, scheduler, boot_data)
+                    curr_epoch_loss, curr_epoch_accuracy = _train_on_self(model, seq_patch, img_emb, tgt,  optim, scheduler, boot_data)
+                    epoch_total_loss += curr_epoch_loss
+                    epoch_total_accuracy += curr_epoch_accuracy
                 elif CURR_TRAIN_METHOD == "on_pic":
                     print("ON PIC EPOCH")
                 elif CURR_TRAIN_METHOD == "full":
                     print("FULL EPOCH")
+
+                print(epoch_total_loss)
+                print(epoch_total_accuracy)
 
             epoch_total_loss /= len(train_loader)
             epoch_total_accuracy /= len(train_loader)
@@ -126,6 +129,7 @@ def train(boot_data):
 
 def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler, boot_data):
     total_loss = 0
+    total_accuracy = 0
     for i in range(seq_patch.shape[1]):
         optim.zero_grad()
 
@@ -140,8 +144,10 @@ def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler, boot_dat
         optim.step()
 
         total_loss += loss
+    
+        total_accuracy += percent_on_correct(result, curr_target, False)
 
-    return total_loss / seq_patch.shape[1]
+    return total_loss / seq_patch.shape[1], total_accuracy / seq_patch.shape[1]
 
 def main():
     # on_self: training encoder and decoder on the same path. Good for first epoch
