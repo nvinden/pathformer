@@ -50,7 +50,7 @@ def train(boot_data):
         print(f"Loading from {boot_data['path']}...")
         curr_epoch, CURR_TRAIN_METHOD, model, optim, scheduler, log_list = load_data(boot_data['path'])
     else:
-        print("Creating new run...")
+        print(f"Creating new run...")
         curr_epoch = 0
         CURR_TRAIN_METHOD = "on_self"
         model = PathFormer(MODEL_CONFIG, IMAGE_EMBEDDING_CONFIG, CURR_TRAIN_METHOD)
