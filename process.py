@@ -170,13 +170,18 @@ def percent_on_correct(result, target, verbose):
 
     return avg_correctness
 
-def validate(model, val_max_range, boot_data):
+def validate(model, val_loader, boot_data):
     loss_count = 0
     accuracy_count = 0
 
     model.eval()
-    for i_batch in range(val_max_range):
-        (seq, stim, img_emb, seq_patch) = get_data_from_batch_number(i_batch, IMAGE_EMBEDDING_CONFIG, boot_data['r'], "val")
+
+    for data in val_loader:
+        model.train()
+
+        stim = data['stimuli']
+        img_emb = data['image_embedding']
+        seq_patch = data['sequence_patch']
 
         viewer_loss_count = 0
         viewer_accuracy_count = 0
@@ -185,8 +190,8 @@ def validate(model, val_max_range, boot_data):
             tgt = create_target_sequence(seq_patch, model)
             tgt.requires_grad = False
 
-            curr_seq_patch = seq_patch[:, i]
-            curr_target = tgt[:, :, i]
+            curr_seq_patch = seq_patch[:, i, :]
+            curr_target = tgt[:, i, :]
 
             result = model(curr_seq_patch, img_emb)
 
@@ -196,8 +201,8 @@ def validate(model, val_max_range, boot_data):
         loss_count += viewer_loss_count / seq_patch.shape[-1]
         accuracy_count += viewer_accuracy_count / seq_patch.shape[-1]
     
-    loss_count /= val_max_range
-    accuracy_count /= val_max_range
+    loss_count /= len(val_loader)
+    accuracy_count /= len(val_loader)
 
     return loss_count, accuracy_count
 

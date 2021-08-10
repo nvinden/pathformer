@@ -5,7 +5,7 @@ DATASET_CONFIG = {
 }
 
 IMAGE_EMBEDDING_CONFIG = {
-	'data_path': "Datasets/image_embeddings",
+	'data_path': "Datasets/pathformer_data",
 	'dataset_name': "OSIE",
 	'height': 600,
 	'width': 800,

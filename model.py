@@ -106,14 +106,10 @@ class PathFormer(nn.Module):
             curr = seq_dec[i]
             dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.LongTensor([self.START])).squeeze(0)
             idx += 1
-            for fix_patch in curr:
+            for j in range(1, len(curr)):
+                fix_patch = curr[j]
                 dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.LongTensor([fix_patch])).squeeze(0)
                 idx += 1
-            dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.LongTensor([self.END])).squeeze(0)
-            idx += 1
-            for end_patch in range(idx, self.t_seq_length):
-                dec_embeddings[i, end_patch] = self.decoder_positional_embedding(torch.LongTensor([self.NONE])).squeeze(0)
-            
         return dec_embeddings
         
 
@@ -123,7 +119,8 @@ class PathFormer(nn.Module):
         return mask
 
     def forward(self, seq, img_patches):
-        img_patches = torch.from_numpy(img_patches)
+        if not torch.is_tensor(img_patches):
+            img_patches = torch.from_numpy(img_patches)
         img_patches.requires_grad = False
 
         #convolution
@@ -146,6 +143,7 @@ class PathFormer(nn.Module):
             enc_emb = enc_emb.view(self.batch_size, self.n_patches, -1)
 
         #decoder
+        #(32, 25, 768)
         dec_emb = self.create_dec_embeddings(seq)
 
         enc_emb = self.positional_encoding(enc_emb)

@@ -1,6 +1,6 @@
 from saliency import dataset
 from config import *
-from dataset import ImageEmbeddings, create_batches, create_target_sequence, get_data_from_batch_number
+from dataset import *
 from model import PathFormer
 from process import *
 
@@ -34,6 +34,17 @@ def train(boot_data):
     MODEL_CONFIG = foo.MODEL_CONFIG
     TRAIN_CONFIG = foo.TRAIN_CONFIG
 
+    #configuring datasets
+    dataset = PathformerData(IMAGE_EMBEDDING_CONFIG, DATASET_CONFIG, MODEL_CONFIG)
+
+    ttv_dim = IMAGE_EMBEDDING_CONFIG['train_test_val']
+
+    train_set, test_set, val_set = torch.utils.data.random_split(dataset, [ttv_dim[0], ttv_dim[1], ttv_dim[2]])
+
+    train_loader = DataLoader(train_set, batch_size = MODEL_CONFIG['batch_size'], shuffle = True)
+    test_loader = DataLoader(test_set, batch_size = MODEL_CONFIG['batch_size'], shuffle = True)
+    val_loader = DataLoader(val_set, batch_size = MODEL_CONFIG['batch_size'], shuffle = True)
+
     #creating model and system surrounding model
     if os.path.isfile(boot_data['path']) and boot_data['r'] == False:
         curr_epoch, CURR_TRAIN_METHOD, model, optim, scheduler, log_list = load_data(boot_data['path'])
@@ -46,13 +57,7 @@ def train(boot_data):
         log_list = {}
 
     CURR_TRAIN_CONFIG = TRAIN_CONFIG[CURR_TRAIN_METHOD]
-
-    train_max_range = (IMAGE_EMBEDDING_CONFIG['train_idx'][1] - IMAGE_EMBEDDING_CONFIG['train_idx'][0]) // MODEL_CONFIG['batch_size']
-    test_max_range = (IMAGE_EMBEDDING_CONFIG['test_idx'][1] - IMAGE_EMBEDDING_CONFIG['test_idx'][0]) // MODEL_CONFIG['batch_size']
-    val_max_range = (IMAGE_EMBEDDING_CONFIG['val_idx'][1] - IMAGE_EMBEDDING_CONFIG['val_idx'][0]) // MODEL_CONFIG['batch_size']
-        
-    model.train()
-
+    
     start_time = time.time()
 
     while CURR_TRAIN_METHOD != "end":
@@ -61,12 +66,16 @@ def train(boot_data):
             epoch_total_loss = 0
             epoch_total_accuracy = 0
 
-            for i_batch in range(train_max_range):
-                val_loss, val_accuracy = validate(model, val_max_range, boot_data)
-
+            for data in train_loader:
                 model.train()
-                (seq, stim, img_emb, seq_patch) = get_data_from_batch_number(i_batch, IMAGE_EMBEDDING_CONFIG, boot_data['r'], "train")
 
+                stim = data['stimuli']
+                img_emb = data['image_embedding']
+                seq_patch = data['sequence_patch']
+                
+                #(seq, stim, img_emb, seq_patch) = get_data_from_batch_number(0, IMAGE_EMBEDDING_CONFIG, boot_data['r'], "train")
+
+                #tgt: [32, 25, 15]
                 tgt = create_target_sequence(seq_patch, model)
                 tgt.requires_grad = False
 
@@ -74,42 +83,42 @@ def train(boot_data):
                     epoch_total_loss += _train_on_self(model, seq_patch, img_emb, tgt,  optim, scheduler, boot_data)
                 elif CURR_TRAIN_METHOD == "on_pic":
                     print("ON PIC EPOCH")
-                elif train_method == "full":
+                elif CURR_TRAIN_METHOD == "full":
                     print("FULL EPOCH")
 
-            epoch_total_loss /= train_max_range
-            epoch_total_accuracy /= train_max_range
+            epoch_total_loss /= len(train_loader)
+            epoch_total_accuracy /= len(train_loader)
 
-            val_loss, val_accuracy = validate(model, val_max_range, boot_data)
+            val_loss, val_accuracy = validate(model, val_loader, boot_data)
 
             add_to_log_list(log_list, CURR_TRAIN_METHOD, epoch_total_loss, epoch_total_accuracy, val_loss, val_accuracy)
 
             print(f"Epoch {epoch}: on {CURR_TRAIN_METHOD}")
-            print(f"        Loss: {epoch_total_loss}")
-            print(f"    Accuracy: {epoch_total_accuracy}")
-            print(f"    Val Loss: {val_loss}")
-            print(f"Val Accuracy: {val_accuracy}")
+            print(f"         Loss: {epoch_total_loss}")
+            print(f"     Accuracy: {epoch_total_accuracy}")
+            print(f"     Val Loss: {val_loss}")
+            print(f" Val Accuracy: {val_accuracy}")
 
             save_data(boot_data['path'], epoch, model, scheduler, CURR_TRAIN_METHOD, optim, log_list)
         
         #switching to next phase
-        if train_method == "on_self":
+        if CURR_TRAIN_METHOD == "on_self":
             if "on_pic" in TRAIN_CONFIG:
-                train_method = "on_pic"
+                CURR_TRAIN_METHOD = "on_pic"
                 CURR_TRAIN_CONFIG = TRAIN_CONFIG["on_pic"]
             elif "full" in TRAIN_CONFIG:
-                train_method = "full"
+                CURR_TRAIN_METHOD = "full"
                 CURR_TRAIN_CONFIG = TRAIN_CONFIG["full"]
             else:
-                train_method = "end"
-        elif train_method == "on_pic":
+                CURR_TRAIN_METHOD = "end"
+        elif CURR_TRAIN_METHOD == "on_pic":
             if "full" in TRAIN_CONFIG:
-                train_method = "full"
+                CURR_TRAIN_METHOD = "full"
                 CURR_TRAIN_CONFIG = TRAIN_CONFIG["full"]
             else:
-                train_method = "end"
-        elif train_method == "full":
-            train_method = "end"
+                CURR_TRAIN_METHOD = "end"
+        elif CURR_TRAIN_METHOD == "full":
+            CURR_TRAIN_METHOD = "end"
         else:
             raise ValueError("Incorrect train method type")
 
@@ -118,8 +127,8 @@ def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler, boot_dat
     for i in range(seq_patch.shape[1]):
         optim.zero_grad()
 
-        curr_seq_patch = seq_patch[:, i]
-        curr_target = target[:, :, i]
+        curr_seq_patch = seq_patch[:, i, :]
+        curr_target = target[:, i, :]
 
         result = model(curr_seq_patch, img_emb)
 
