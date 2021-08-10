@@ -47,7 +47,7 @@ def train(boot_data):
 
     #creating model and system surrounding model
     if os.path.isfile(boot_data['path']) and boot_data['r'] == False:
-        print(f"Loading from {boot_data['path']...}")
+        print(f"Loading from {boot_data['path']}...")
         curr_epoch, CURR_TRAIN_METHOD, model, optim, scheduler, log_list = load_data(boot_data['path'])
     else:
         print("Creating new run...")
