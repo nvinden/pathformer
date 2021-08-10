@@ -64,6 +64,8 @@ def train(boot_data):
         for epoch in range(curr_epoch, CURR_TRAIN_CONFIG['n_epochs']):
             start_time = time.time()
 
+            val_loss, val_accuracy = validate(model, val_loader, boot_data)
+
             epoch_total_loss = 0
             epoch_total_accuracy = 0
 

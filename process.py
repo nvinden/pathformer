@@ -186,7 +186,7 @@ def validate(model, val_loader, boot_data):
         viewer_loss_count = 0
         viewer_accuracy_count = 0
 
-        for i in range(seq_patch.shape[-1]):
+        for i in range(seq_patch.shape[1]):
             tgt = create_target_sequence(seq_patch, model)
             tgt.requires_grad = False
 
