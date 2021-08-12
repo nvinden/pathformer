@@ -55,7 +55,7 @@ def train(boot_data):
         curr_epoch = 0
         CURR_TRAIN_METHOD = "on_self"
         model = PathFormer(MODEL_CONFIG, IMAGE_EMBEDDING_CONFIG, CURR_TRAIN_METHOD)
-        optim = torch.optim.ADAM(model.parameters(), lr=TRAIN_CONFIG['on_self']['lr'])
+        optim = torch.optim.Adam(model.parameters(), lr=TRAIN_CONFIG['on_self']['lr'])
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size = TRAIN_CONFIG['on_self']['step_size'], gamma = TRAIN_CONFIG['on_self']['step_size'])
         log_list = {}
 
@@ -131,7 +131,7 @@ def train(boot_data):
         else:
             raise ValueError("Incorrect train method type")
 
-        optim = torch.optim.ADAM(model.parameters(), lr=TRAIN_CONFIG[CURR_TRAIN_METHOD]['lr'])
+        optim = torch.optim.Adam(model.parameters(), lr=TRAIN_CONFIG[CURR_TRAIN_METHOD]['lr'])
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size = TRAIN_CONFIG[CURR_TRAIN_METHOD]['step_size'], gamma = TRAIN_CONFIG[CURR_TRAIN_METHOD]['gamma'])
     print("Training complete")
 
