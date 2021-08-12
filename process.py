@@ -33,10 +33,10 @@ def load_data(path):
     model = PathFormer(MODEL_CONFIG, IMAGE_EMBEDDING_CONFIG, train_method)
     model.load_state_dict(data['model_state_dict'])
 
-    optim = torch.optim.SGD(model.parameters(), lr=TRAIN_CONFIG[train_method]['lr'])
+    optim = torch.optim.Adam(model.parameters(), lr=TRAIN_CONFIG[train_method]['lr'])
     optim.load_state_dict(data['optimizer_state_dict'])
 
-    scheduler = torch.optim.lr_scheduler.StepLR(optim, 1.0, gamma=0.95)
+    scheduler = torch.optim.lr_scheduler.StepLR(optim, TRAIN_CONFIG[train_method]['step_size'], gamma=TRAIN_CONFIG[train_method]['gamma'])
     scheduler.load_state_dict(data['scheduler_state_dict'])
 
     return epoch, train_method, model, optim, scheduler, log_list
@@ -176,7 +176,7 @@ def validate(model, val_loader, boot_data):
     model.eval()
 
     for data in val_loader:
-        model.train()
+        model.eval()
 
         stim = data['stimuli']
         img_emb = data['image_embedding']
@@ -197,8 +197,8 @@ def validate(model, val_loader, boot_data):
             viewer_loss_count += calculate_loss(result, curr_target, model)
             viewer_accuracy_count += percent_on_correct(result, curr_target, False)
 
-        loss_count += viewer_loss_count / seq_patch.shape[-1]
-        accuracy_count += viewer_accuracy_count / seq_patch.shape[-1]
+        loss_count += viewer_loss_count / seq_patch.shape[1]
+        accuracy_count += viewer_accuracy_count / seq_patch.shape[1]
     
     loss_count /= len(val_loader)
     accuracy_count /= len(val_loader)
