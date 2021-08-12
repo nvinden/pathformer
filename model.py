@@ -69,7 +69,7 @@ class PathFormer(nn.Module):
         self.encoder_conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 5, stride=1, padding=2)
         self.encoder_conv3 = nn.Conv2d(in_channels = 64, out_channels = 128, kernel_size = 5, stride=1, padding=2)
         self.encoder_conv4 = nn.Conv2d(in_channels = 128, out_channels = 256, kernel_size = 3, stride=1, padding=1)
-        self.encoder_linear = nn.Linear(256 * 6 * 6, self.image_embedding_dimension)
+        self.encoder_linear = nn.Linear(256 * 6 * 6, self.D)
 
         #self.encoder_positional_embedding = nn.Embedding(self.n_tokens, self.position_embedding_dimension)
         self.decoder_positional_embedding = nn.Embedding(self.n_tokens, self.D)
