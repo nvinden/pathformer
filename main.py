@@ -55,13 +55,12 @@ def train(boot_data):
         curr_epoch = 0
         CURR_TRAIN_METHOD = "on_self"
         model = PathFormer(MODEL_CONFIG, IMAGE_EMBEDDING_CONFIG, CURR_TRAIN_METHOD)
-        optim = torch.optim.SGD(model.parameters(), lr=TRAIN_CONFIG['on_self']['lr'])
-        scheduler = torch.optim.lr_scheduler.StepLR(optim, 1.0, gamma=0.95)
+        optim = torch.optim.ADAM(model.parameters(), lr=TRAIN_CONFIG['on_self']['lr'])
+        scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size = TRAIN_CONFIG['on_self']['step_size'], gamma = TRAIN_CONFIG['on_self']['step_size'])
         log_list = {}
 
     CURR_TRAIN_CONFIG = TRAIN_CONFIG[CURR_TRAIN_METHOD]
     
-
     while CURR_TRAIN_METHOD != "end":
         model.train_method = CURR_TRAIN_METHOD
         for epoch in range(curr_epoch, CURR_TRAIN_CONFIG['n_epochs']):
@@ -80,6 +79,8 @@ def train(boot_data):
                 #tgt: [32, 25, 15]
                 tgt = create_target_sequence(seq_patch, model)
                 tgt.requires_grad = False
+
+                CURR_TRAIN_METHOD = "on_pic"
 
                 if CURR_TRAIN_METHOD == "on_self":
                     curr_epoch_loss, curr_epoch_accuracy = _train_on_self(model, seq_patch, img_emb, tgt,  optim, scheduler, boot_data)
@@ -126,8 +127,14 @@ def train(boot_data):
                 CURR_TRAIN_METHOD = "end"
         elif CURR_TRAIN_METHOD == "full":
             CURR_TRAIN_METHOD = "end"
+            break
         else:
             raise ValueError("Incorrect train method type")
+
+        optim = torch.optim.ADAM(model.parameters(), lr=TRAIN_CONFIG[CURR_TRAIN_METHOD]['lr'])
+        scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size = TRAIN_CONFIG[CURR_TRAIN_METHOD]['step_size'], gamma = TRAIN_CONFIG[CURR_TRAIN_METHOD]['gamma'])
+    print("Training complete")
+
 
 def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler, boot_data):
     total_loss = 0
