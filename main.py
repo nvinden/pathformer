@@ -64,7 +64,6 @@ def train(boot_data):
     while CURR_TRAIN_METHOD != "end":
         model.train_method = CURR_TRAIN_METHOD
         for epoch in range(curr_epoch, CURR_TRAIN_CONFIG['n_epochs']):
-            scheduler.step()
 
             start_time = time.time()
 
@@ -101,13 +100,17 @@ def train(boot_data):
             add_to_log_list(log_list, CURR_TRAIN_METHOD, epoch_total_loss, epoch_total_accuracy, val_loss, val_accuracy)
 
             print(f"Epoch {epoch}: on {CURR_TRAIN_METHOD}")
+            print(f"           lr: {optim.defaults['lr']}")
             print(f"         Loss: {epoch_total_loss}")
             print(f"     Accuracy: {epoch_total_accuracy}")
             print(f"     Val Loss: {val_loss}")
             print(f" Val Accuracy: {val_accuracy}")
             print(f" TIME: {time.time() - start_time}")
 
+            scheduler.step()
+
             save_data(boot_data['path'], epoch, model, scheduler, CURR_TRAIN_METHOD, optim, log_list)
+            
         
         #switching to next phase
         if CURR_TRAIN_METHOD == "on_self":
@@ -151,8 +154,6 @@ def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler, boot_dat
         loss.backward()
 
         optim.step()
-
-        print(optim.defaults['lr'])
 
         total_loss += loss
     
