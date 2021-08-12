@@ -80,8 +80,6 @@ def train(boot_data):
                 tgt = create_target_sequence(seq_patch, model)
                 tgt.requires_grad = False
 
-                CURR_TRAIN_METHOD = "on_pic"
-
                 if CURR_TRAIN_METHOD == "on_self":
                     curr_epoch_loss, curr_epoch_accuracy = _train_on_self(model, seq_patch, img_emb, tgt,  optim, scheduler, boot_data)
                     epoch_total_loss += curr_epoch_loss
