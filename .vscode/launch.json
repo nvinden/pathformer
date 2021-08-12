@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "main.py",
             "console": "integratedTerminal",
-            "args": ["--path=saves/medium_model", "--conf=medium_config.py"]
+            "args": ["--path=saves/test", "--conf=config.py"]
         }
     ]
 }

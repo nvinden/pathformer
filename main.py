@@ -64,6 +64,8 @@ def train(boot_data):
     while CURR_TRAIN_METHOD != "end":
         model.train_method = CURR_TRAIN_METHOD
         for epoch in range(curr_epoch, CURR_TRAIN_CONFIG['n_epochs']):
+            scheduler.step()
+
             start_time = time.time()
 
             epoch_total_loss = 0
@@ -149,6 +151,8 @@ def _train_on_self(model, seq_patch, img_emb, target, optim, scheduler, boot_dat
         loss.backward()
 
         optim.step()
+
+        print(optim.defaults['lr'])
 
         total_loss += loss
     

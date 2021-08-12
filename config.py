@@ -37,7 +37,7 @@ TRAIN_CONFIG = {
 	"on_self": {
 		"n_epochs": 20,
 		"lr": 0.0001,
-		"loss_weights": [10, 10],
+		"loss_weights": [100, 100],
 		"step_size": 3,
 		"gamma": 0.95
 		},
