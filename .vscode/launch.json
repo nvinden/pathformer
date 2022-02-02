@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "main.py",
             "console": "integratedTerminal",
-            "args": ["--path=saves/test", "--conf=config.py"]
+            "args": ["--path=saves/test", "--conf=config"]
         }
     ]
 }

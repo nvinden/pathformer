@@ -1,0 +1,47 @@
+{
+	"DATASET_CONFIG": {
+		"data_path" : "Datasets",
+		"dataset_json": "saliency/data/dataset.json",
+		"auto_download" : true
+	},
+
+	"IMAGE_EMBEDDING_CONFIG": {
+		"data_path": "Datasets/pathformer_data",
+		"dataset_name": "CAT2000",
+		"height": 600,
+		"width": 800,
+		"n_images": 2000,
+		"train_test_val": [1600, 200, 200],
+		"image_splits": [6, 8],
+		"data_range": "all",
+		"blur": false
+	},
+
+	"MODEL_CONFIG": {
+		"batch_size": 2,
+		"D": 768,
+		"img_patch_area": 30000,
+
+		"vgg19": false,
+
+		"image_embedding_dimension": 748,
+		"decoder_embedding_dimension": 20,
+
+		"t_seq_length": 25,
+		"t_n_head": 6,
+		"t_n_encoder_layers": 1,
+		"t_n_decoder_layers": 1,
+		"t_dim_feedforward": 100,
+		"t_dropout": 0.1,
+		"t_activation": "relu",
+		"t_batch_first": true
+	},
+
+	"TRAIN_CONFIG": {
+		"n_epochs": 20,
+		"lr": 3e-4,
+		"loss_weights": [100, 0],
+		"step_size": 3,
+		"gamma": 0.95
+	}
+}

@@ -1,47 +1,55 @@
-from config import *
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from model import PathFormer
-from config import *
 from dataset import get_data_from_batch_number, create_target_sequence
+
+from saliency.metrics import eyenalysis, DTW
 
 import math
 import os
 
 import numpy as np
 
-def save_data(path, epoch, model, scheduler, train_method, optimizer, log_list):
+import json
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+def load_json_config(path):
+    with open(path) as f:
+        data = json.load(f)
+
+    return data["IMAGE_EMBEDDING_CONFIG"], data["DATASET_CONFIG"], data["MODEL_CONFIG"], data["TRAIN_CONFIG"]
+
+def save_data(path, epoch, model, scheduler, optimizer, log_list):
     torch.save({
             'epoch': epoch,
-            'train_method': train_method,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'scheduler_state_dict': scheduler.state_dict(),
             'log_list': log_list
     }, path)
 
-def load_data(path):
+def load_data(path, TRAIN_CONFIG, MODEL_CONFIG, IMAGE_EMBEDDING_CONFIG):
     data = torch.load(path)
 
     epoch = data['epoch']
-    train_method = data['train_method']
     log_list = data['log_list']
 
-    model = PathFormer(MODEL_CONFIG, IMAGE_EMBEDDING_CONFIG, train_method)
+    model = PathFormer(MODEL_CONFIG, IMAGE_EMBEDDING_CONFIG)
     model.load_state_dict(data['model_state_dict'])
 
-    optim = torch.optim.Adam(model.parameters(), lr=TRAIN_CONFIG[train_method]['lr'])
-    optim.load_state_dict(data['optimizer_state_dict'])
-
-    scheduler = torch.optim.lr_scheduler.StepLR(optim, TRAIN_CONFIG[train_method]['step_size'], gamma=TRAIN_CONFIG[train_method]['gamma'])
+    optimizer = torch.optim.Adam(model.parameters(), lr=TRAIN_CONFIG['lr'])
+    optimizer.load_state_dict(data['optimizer_state_dict'])
+    
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, TRAIN_CONFIG['step_size'], gamma=TRAIN_CONFIG['gamma'])
     scheduler.load_state_dict(data['scheduler_state_dict'])
 
-    return epoch, train_method, model, optim, scheduler, log_list
+    return epoch, model, optimizer, scheduler, log_list
 
-def create_distance_dictionary(model, path = None):
+def create_distance_dictionary(model, IMAGE_EMBEDDING_CONFIG, path = None):
     if path is not None and os.path.isfile(path):
         dist_dict = np.load(path)
     else:
@@ -70,12 +78,11 @@ def create_distance_dictionary(model, path = None):
 
     return dist_dict
 
+def spatio_mse(predicted, target, model, IMAGE_EMBEDDING_CONFIG):
+    pred = torch.clone(predicted).to(device)
+    tgt = torch.clone(target).to(device)
 
-def spatio_mse(predicted, target, model):
-    pred = torch.clone(predicted)
-    tgt = torch.clone(target)
-
-    dist_dict = create_distance_dictionary(model, path = None)
+    dist_dict = create_distance_dictionary(model, IMAGE_EMBEDDING_CONFIG, path = None)
 
     s_mse = 0
 
@@ -87,7 +94,7 @@ def spatio_mse(predicted, target, model):
             curr_row = curr_row[:model.n_patches]
             curr_row = F.softmax(curr_row, dim = 0)
             
-            torch_dict = torch.from_numpy(dist_dict[tgt_num, :])
+            torch_dict = torch.from_numpy(dist_dict[tgt_num, :]).to(device)
             torch_dict.requires_grad = False
 
             ew_mult = torch_dict * curr_row
@@ -102,11 +109,11 @@ def point_type_crossentropy_loss(predicted, target, model):
 
     n_out_dims = model.n_tokens - model.n_patches + 1
 
-    new_pred = torch.zeros([predicted.shape[0], predicted.shape[1], n_out_dims])
+    new_pred = torch.zeros([predicted.shape[0], predicted.shape[1], n_out_dims], device = device)
     new_pred[:, :, 1:] = predicted[:, :, -n_out_dims + 1:]
     new_pred[:, :, 0] = 1 - new_pred.sum(axis = 2)
 
-    tgt_cpy = torch.clone(target)
+    tgt_cpy = torch.clone(target).to(device = device)
     for i, batch in enumerate(tgt_cpy):
         for j, point in enumerate(batch):
             if 0 <= point <= model.n_patches - 1:
@@ -121,21 +128,35 @@ def point_type_crossentropy_loss(predicted, target, model):
     return out
 
 def cross_entropy_loss(predicted, target, model):
-    cel = nn.NLLLoss()
+    cel = nn.NLLLoss(weight = model.ds_token_weights, ignore_index = model.NONE)
 
+    pred = predicted.permute([0, 2, 1])
+    pred = torch.log(pred)
+
+    out = cel(pred, target)
+
+    '''
     out = 0
 
     for pred, tgt in zip(predicted, target):
         curr_out = 0
-        index = ((tgt == model.NONE).nonzero()[0])
+        if tgt[-1] != model.NONE:
+            index = len(tgt) - 1
+        else:
+            index = ((tgt == model.NONE).nonzero()[0])
 
         pred = torch.log(pred)
 
         curr_out = cel(pred[:index], tgt[:index])
-        curr_out /= index.item()
+        if isinstance(index, int):
+            curr_out /= index
+        else:
+            curr_out /= index.item()
 
         out += curr_out
     out /= model.batch_size
+
+    '''
 
     return out
 
@@ -143,11 +164,11 @@ def calculate_loss(predicted, target, model):
     #predicted (batch, n_tokens, n_patches)
     #target (batch, n_patches)
 
-    weights = TRAIN_CONFIG[model.train_method]['loss_weights']
+    weights = [1.0, 0.0]#TRAIN_CONFIG['loss_weights']
 
     pt_cse = cross_entropy_loss(predicted, target, model)
 
-    s_mse = 0#spatio_mse(predicted, target, model)
+    s_mse = 0.0#spatio_mse(predicted, target, model)
 
     return weights[0] * pt_cse + weights[1] * s_mse
 
@@ -169,41 +190,175 @@ def percent_on_correct(result, target, verbose):
 
     return avg_correctness
 
-def validate(model, val_loader, boot_data):
+def calculate_avg_scores(analysis_list):
+    total_dtw = 0.0
+    total_eye = 0.0
+
+    for batch in analysis_list:
+        total_dtw += batch["dtw_spp"]
+        total_eye += batch["eye_spp"]
+
+    avg_dtw = total_dtw / len(analysis_list)
+    avg_eye = total_eye / len(analysis_list)
+
+    return avg_dtw, avg_eye
+
+def finalize_analyze_batch_list(analyze_batch_list):
+    for batch in analyze_batch_list:
+        batch["dtw_spp"] = min(batch["dtw"])
+        batch["eye_spp"] = min(batch["eye"])
+
+def increment_analyze_batch_list(analyze_batch_list, result, curr_target, IMAGE_EMBEDDING_CONFIG):
+    #tokens: List of single tokens that are used in transformer [19, 18, 32, 43, 51, 51, 51, 51]
+    #xy: x-y coordinates in the range (0 to 1)
+    #token-xy: List of tokens used in dtw in the form [(x_tok1, y_tok1), (x_tok2, y_tok2), ...]
+    token_results = result_to_tokens(result)
+    tokenxy_results = tokens_to_tokenxy(token_results, IMAGE_EMBEDDING_CONFIG)
+    xy_results = tokens_to_xy(token_results, IMAGE_EMBEDDING_CONFIG)
+
+    tokenxy_target = tokens_to_tokenxy(curr_target, IMAGE_EMBEDDING_CONFIG)
+    xy_target = tokens_to_xy(curr_target, IMAGE_EMBEDDING_CONFIG)
+
+    for batch_no, (tokenxy_series_results, xy_series_results, tokenxy_series_target, xy_series_target) in enumerate(zip(tokenxy_results, xy_results, tokenxy_target, xy_target)):
+        curr_batch = analyze_batch_list[batch_no]
+        dtw_distance = DTW(tokenxy_series_results, tokenxy_series_target)
+        eye_distance = eyenalysis(xy_series_results, xy_series_target)
+
+        if "dtw" not in curr_batch:
+            curr_batch["dtw"] = list()
+        if "eye" not in curr_batch:
+            curr_batch["eye"] = list()
+
+        curr_batch["dtw"].append(dtw_distance)
+        curr_batch["eye"].append(eye_distance)
+
+def increment_analyze_batch_list_val(analyze_batch_list, token_results, curr_target, IMAGE_EMBEDDING_CONFIG):
+    #tokens: List of single tokens that are used in transformer [19, 18, 32, 43, 51, 51, 51, 51]
+    #xy: x-y coordinates in the range (0 to 1)
+    #token-xy: List of tokens used in dtw in the form [(x_tok1, y_tok1), (x_tok2, y_tok2), ...]
+    tokenxy_results = tokens_to_tokenxy(token_results, IMAGE_EMBEDDING_CONFIG)
+    xy_results = tokens_to_xy(token_results, IMAGE_EMBEDDING_CONFIG)
+
+    tokenxy_target = tokens_to_tokenxy(curr_target, IMAGE_EMBEDDING_CONFIG)
+    xy_target = tokens_to_xy(curr_target, IMAGE_EMBEDDING_CONFIG)
+
+    for batch_no, (tokenxy_series_results, xy_series_results, tokenxy_series_target, xy_series_target) in enumerate(zip(tokenxy_results, xy_results, tokenxy_target, xy_target)):
+        curr_batch = analyze_batch_list[batch_no]
+        dtw_distance = DTW(tokenxy_series_results, tokenxy_series_target)
+        eye_distance = eyenalysis(xy_series_results, xy_series_target)
+
+        if "dtw" not in curr_batch:
+            curr_batch["dtw"] = list()
+        if "eye" not in curr_batch:
+            curr_batch["eye"] = list()
+
+        curr_batch["dtw"].append(dtw_distance)
+        curr_batch["eye"].append(eye_distance)
+        
+def tokens_to_xy(tokens, config):
+    height_split = config["image_splits"][0]
+    width_split = config["image_splits"][1]
+
+    out = list()
+
+    for batch in tokens:
+        xy_series = list()
+
+        for token in batch:
+            token = token.item()
+
+            if token >= height_split * width_split:
+                break
+
+            token_y = token // width_split
+            token_x = token % width_split
+
+            y = (float(token_y) + 0.5) / height_split
+            x = (float(token_x) + 0.5) / width_split
+
+            xy_series.append([x, y])
+
+        out.append(xy_series)
+
+    return out
+
+def tokens_to_tokenxy(tokens, config):
+    height_split = config["image_splits"][0]
+    width_split = config["image_splits"][1]
+
+    out = list()
+
+    for batch in tokens:
+        tokenxy_series = list()
+
+        for token in batch:
+            token = token.item()
+
+            if token >= height_split * width_split:
+                break
+
+            token_y = token // width_split
+            token_x = token % width_split
+
+            tokenxy_series.append([token_x, token_y])
+
+        out.append(tokenxy_series)
+
+    return out
+
+def result_to_tokens(result):
+    assert len(result.shape) == 2 or len(result.shape) == 3
+    if len(result.shape) == 2:
+        return torch.argmax(result, dim = 1)
+    else:
+        return torch.argmax(result, dim = 2)
+
+def validate(model, val_loader, boot_data, IMAGE_EMBEDDING_CONFIG, analyze_condition):
     loss_count = 0
     accuracy_count = 0
 
     model.eval()
 
-    for data in val_loader:
+    if analyze_condition:
+        analysis_list = list()
+
+    for idx, data in enumerate(val_loader):
         model.eval()
 
         stim = data['stimuli']
         img_emb = data['image_embedding']
         seq_patch = data['sequence_patch']
 
-        viewer_loss_count = 0
-        viewer_accuracy_count = 0
+        target = torch.clone(seq_patch).to(device = device)
 
         for i in range(seq_patch.shape[1]):
-            tgt = create_target_sequence(seq_patch, model)
-            tgt.requires_grad = False
+
+            if analyze_condition:
+                analyze_batch_list = [{} for i in range(seq_patch.shape[0])]
 
             curr_seq_patch = seq_patch[:, i, :]
-            curr_target = tgt[:, i, :]
+            curr_target = target[:, i, :]
 
             result = model(curr_seq_patch, img_emb)
 
-            viewer_loss_count += calculate_loss(result, curr_target, model)
-            viewer_accuracy_count += percent_on_correct(result, curr_target, False)
+            if analyze_condition:
+                increment_analyze_batch_list_val(analyze_batch_list, result, curr_target, IMAGE_EMBEDDING_CONFIG)
 
-        loss_count += viewer_loss_count / seq_patch.shape[1]
-        accuracy_count += viewer_accuracy_count / seq_patch.shape[1]
+            if i == 3:
+                break
+
+        if analyze_condition:
+            analysis_list = analysis_list + analyze_batch_list
+
+    if analyze_condition:
+        finalize_analyze_batch_list(analyze_batch_list)
+    else:
+        analyze_batch_list = None
     
     loss_count /= len(val_loader)
     accuracy_count /= len(val_loader)
 
-    return loss_count, accuracy_count
+    return analyze_batch_list
 
 def add_to_log_list(log_list, train_mode, epoch_total_loss, epoch_total_accuracy, val_loss, val_accuracy):
     if train_mode in log_list:
