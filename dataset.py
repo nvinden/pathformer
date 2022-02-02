@@ -10,6 +10,8 @@ from PIL import Image
 
 from saliency import dataset
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 class PathformerTokenData(Dataset):
     def __init__(self, IMAGE_EMBEDDING_CONFIG, DATASET_CONFIG, MODEL_CONFIG, create_data = False):
         self.data_path = os.path.join(DATASET_CONFIG['data_path'], "PathFormerTokens")
