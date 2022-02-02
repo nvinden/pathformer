@@ -135,17 +135,17 @@ class PathformerData(Dataset):
         self.sequence_patch_directory = os.path.join(self.data_path, "sequence_patch")
 
         if not os.path.isdir(self.data_path):
-            os.mkdir(self.data_path)
+            os.makedirs(self.data_path)
         if not os.path.isdir(self.sequence_directory):
-            os.mkdir(self.sequence_directory)
+            os.makedirs(self.sequence_directory)
         if not os.path.isdir(self.lowres_stimuli_directory):
-            os.mkdir(self.lowres_stimuli_directory)
+            os.makedirs(self.lowres_stimuli_directory)
         if not os.path.isdir(self.stimuli_directory):
-            os.mkdir(self.stimuli_directory)
+            os.makedirs(self.stimuli_directory)
         if not os.path.isdir(self.image_embedding_directory):
-            os.mkdir(self.image_embedding_directory)
+            os.makedirs(self.image_embedding_directory)
         if not os.path.isdir(self.sequence_patch_directory):
-            os.mkdir(self.sequence_patch_directory)
+            os.makedirs(self.sequence_patch_directory)
 
     def __len__(self):
         sample_length = len(self.ds.get('stimuli_path'))
