@@ -158,11 +158,11 @@ class PathFormer(nn.Module):
         for i in range(self.batch_size):
             idx = 0
             curr = seq_dec[i]
-            dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.LongTensor([self.START], device = device)).squeeze(0)
+            dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.tensor([self.START], device = device).long()).squeeze(0)
             idx += 1
             for j in range(1, len(curr)):
                 fix_patch = curr[j]
-                dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.LongTensor([fix_patch], device = device)).squeeze(0)
+                dec_embeddings[i, idx] = self.decoder_positional_embedding(torch.tensor([fix_patch], device = device).long()).squeeze(0)
                 idx += 1
         return dec_embeddings 
 
