@@ -344,9 +344,6 @@ def validate(model, val_loader, boot_data, IMAGE_EMBEDDING_CONFIG, analyze_condi
             if analyze_condition:
                 increment_analyze_batch_list_val(analyze_batch_list, result, curr_target, IMAGE_EMBEDDING_CONFIG)
 
-            if i == 3:
-                break
-
         if analyze_condition:
             analysis_list = analysis_list + analyze_batch_list
 

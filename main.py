@@ -65,7 +65,7 @@ def train(boot_data, run_name):
         epoch_total_loss = 0
         epoch_total_accuracy = 0
 
-        analyze_condition = True#(epoch % 5 == 0 and epoch != 1) or epoch == TRAIN_CONFIG['n_epochs'] - 1
+        analyze_condition = (epoch % 5 == 0 and epoch != 1) or epoch == TRAIN_CONFIG['n_epochs'] - 1
 
         if analyze_condition:
             analysis_list = list()
@@ -110,9 +110,6 @@ def train(boot_data, run_name):
                 analysis_list = analysis_list + batch_analyze
 
             print(".", end = "")
-
-            if idx == 2:
-                break
 
         if analyze_condition:
             avg_dtw, avg_eye = calculate_avg_scores(analysis_list)
