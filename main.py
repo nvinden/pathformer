@@ -56,6 +56,8 @@ def train(boot_data, run_name):
         optim = torch.optim.Adam(model.parameters(), lr=TRAIN_CONFIG['lr'])
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size = TRAIN_CONFIG['step_size'], gamma = TRAIN_CONFIG['step_size'])
         log_list = {}
+
+    model = model.to(device)
     
     for epoch in range(curr_epoch, TRAIN_CONFIG['n_epochs']):
         start_time = time.time()
