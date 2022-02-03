@@ -70,7 +70,7 @@ def train(boot_data, run_name):
         if analyze_condition:
             analysis_list = list()
 
-            train_stem = os.path.join("results", run_name, "test")
+            train_stem = os.path.join("results", run_name, "train")
             val_stem = os.path.join("results", run_name, "val")
 
             train_save_list_name = os.path.join(train_stem, f"{str(epoch).zfill(3)}.json")
