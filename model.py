@@ -34,7 +34,7 @@ class TokenToPosition(nn.Module):
         out = self.pool(F.relu(out))
         out = self.conv4(out)
         out = self.pool(F.relu(out))
-        out = out.view(self.batch_size, -1)
+        out = out.reshape(self.batch_size, -1)
         out = self.linear(out)
 
         out = torch.clamp(out, min = 0.0, max = 1.0)
@@ -183,7 +183,7 @@ class PathFormer(nn.Module):
 
         #convolution
         img_patches = img_patches.permute([0, 1, 4, 2, 3])
-        img_patches = img_patches.view([-1, 3, self.patch_height, self.patch_width])
+        img_patches = img_patches.reshape([-1, 3, self.patch_height, self.patch_width])
 
         if self.vgg19:
             enc_emb = self.vgg19_model(img_patches)
@@ -197,9 +197,9 @@ class PathFormer(nn.Module):
             enc_emb = self.pool(F.relu(enc_emb))
             enc_emb = self.encoder_conv4(enc_emb)
             enc_emb = self.pool(F.relu(enc_emb))
-            enc_emb = enc_emb.view(self.batch_size * self.n_patches, -1)
+            enc_emb = enc_emb.reshape(self.batch_size * self.n_patches, -1)
             enc_emb = self.encoder_linear(self.dropout(enc_emb))
-            enc_emb = enc_emb.view(self.batch_size, self.n_patches, -1)
+            enc_emb = enc_emb.reshape(self.batch_size, self.n_patches, -1)
 
         enc_emb = self.encoder_positional_encoding(enc_emb)
 
