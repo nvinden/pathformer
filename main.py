@@ -65,7 +65,7 @@ def train(boot_data, run_name):
         epoch_total_loss = 0
         epoch_total_accuracy = 0
 
-        analyze_condition = (epoch % 5 == 0 and epoch != 1) or epoch == TRAIN_CONFIG['n_epochs'] - 1
+        analyze_condition = (epoch % 5 == 0) or epoch == TRAIN_CONFIG['n_epochs'] - 1
 
         if analyze_condition:
             analysis_list = list()
