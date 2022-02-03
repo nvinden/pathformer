@@ -178,6 +178,9 @@ class PathFormer(nn.Module):
             img_patches = torch.from_numpy(img_patches, device = device)
         img_patches.requires_grad = False
 
+        img_patches = img_patches.to(device)
+        seq = seq.to(seq)
+
         #convolution
         img_patches = img_patches.permute([0, 1, 4, 2, 3])
         img_patches = img_patches.view([-1, 3, self.patch_height, self.patch_width])
