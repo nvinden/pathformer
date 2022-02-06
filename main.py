@@ -28,17 +28,11 @@ def train(boot_data, run_name):
     IMAGE_EMBEDDING_CONFIG, DATASET_CONFIG, MODEL_CONFIG, TRAIN_CONFIG = load_json_config(config_path)
 
     #configuring datasets
-    master_data_path = f"data/ttv_splits_{IMAGE_EMBEDDING_CONFIG['dataset_name']}.pt"
-    if not os.path.isfile(master_data_path):
-        dataset = PathformerData(IMAGE_EMBEDDING_CONFIG, DATASET_CONFIG, MODEL_CONFIG)
+    dataset = PathformerData(IMAGE_EMBEDDING_CONFIG, DATASET_CONFIG, MODEL_CONFIG)
 
-        ttv_dim = IMAGE_EMBEDDING_CONFIG['train_test_val']
+    ttv_dim = IMAGE_EMBEDDING_CONFIG['train_test_val']
 
-        train_set, test_set, val_set = torch.utils.data.random_split(dataset, [ttv_dim[0], ttv_dim[1], ttv_dim[2]])
-
-        torch.save([train_set, test_set, val_set], master_data_path)
-    else:
-        train_set, test_set, val_set = torch.load(master_data_path)
+    train_set, test_set, val_set = torch.utils.data.random_split(dataset, [ttv_dim[0], ttv_dim[1], ttv_dim[2]])
 
     train_loader = DataLoader(train_set, batch_size = MODEL_CONFIG['batch_size'], shuffle = True, drop_last = True)
     test_loader = DataLoader(test_set, batch_size = MODEL_CONFIG['batch_size'], shuffle = True, drop_last = True)
